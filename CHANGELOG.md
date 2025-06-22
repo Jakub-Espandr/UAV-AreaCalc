@@ -1,6 +1,43 @@
 # Changelog
 
 
+## [0.1.1] - 2025-06-22
+
+### Fixed
+
+-   **Critical ROI Area Calculation Bug**: 
+    -   Fixed major bug where ROI area calculation was summing areas of all features instead of calculating unified geometry area.
+    -   Implemented `unary_union` to properly dissolve multiple features before area calculation.
+    -   Results now match professional GIS software (ArcGIS Pro) with high accuracy.
+-   **TIFF Area Calculation Accuracy**: 
+    -   Fixed similar bug in TIFF area calculation where individual polygon areas were summed incorrectly.
+    -   Now properly dissolves all non-transparent regions into a single feature before measuring total area.
+-   **Projection Accuracy**: 
+    -   Replaced hardcoded UTM projection with dynamic local UTM projection determination.
+    -   System now automatically selects optimal UTM zone based on data's geographic center for maximum accuracy.
+
+### Added
+
+-   **ROI Dimension Measurements**: 
+    -   Added calculation and display of ROI width and height using minimum rotated rectangle algorithm.
+    -   Dimensions are displayed on the visualization with measurement lines and labels.
+    -   Provides comprehensive spatial analysis beyond just area calculations.
+
+### Changed
+
+-   **Reduced macOS Warnings**: 
+    -   Added environment variable settings to suppress common Qt threading warnings on macOS.
+    -   Improved application startup experience with cleaner console output.
+
+### Technical
+
+-   **Code Refactoring**: 
+    -   Simplified the `update_display()` method.
+    -   Enhanced dimension drawing logic with intelligent text positioning.
+    -   Added macOS-specific environment variables for better Qt integration.
+
+---
+
 ## [0.1.0] - 2025-06-22
 
 ### Added

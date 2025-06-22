@@ -1,7 +1,12 @@
 import sys
+import os
 import matplotlib.pyplot as plt
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
+
+# Suppress Qt threading warnings on macOS
+os.environ['QT_MAC_WANTS_LAYER'] = '1'
+os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false'
 
 # Import the refactored UI and resource functions
 from ui.main_window import UAVAreaCalculator
