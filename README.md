@@ -53,7 +53,7 @@ rasterio==1.3.10       # GeoTIFF handling
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/Jakub-Espandr/UAV-AreaCalc.git
+git clone https://github.com/Jakub-Espandr/UAVAreaCalc.git
 cd UAV-AreaCalc
 pip install -r requirements.txt
 python main.py
@@ -73,7 +73,7 @@ python main.py
 
 ## 📌 Changelog
 
-See [CHANGELOG.md](https://github.com/Jakub-Espandr/UAV-AreaCalc/blob/main/CHANGELOG.md)
+See [CHANGELOG.md](https://github.com/Jakub-Espandr/UAVAreaCalc/blob/main/CHANGELOG.md)
 
 ---
 
