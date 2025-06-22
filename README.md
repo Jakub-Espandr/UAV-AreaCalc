@@ -13,7 +13,7 @@
 
 **UAV AreaCalc** is a lightweight cross-platform desktop application for calculating the area of non-transparent regions in UAV-acquired GeoTIFFs (with alpha channel) and comparing them to user-defined regions of interest (ROIs) in Shapefiles.
 
-It is designed for fast validation and visualization of aerial image coverage and analysis zones directly from high-resolution raster data.
+It is designed for fast validation and visualization of aerial image coverage and analysis zones directly from high-resolution raster data, with **worldwide geographic support** that automatically adapts to any region's coordinate system.
 
 ---
 
@@ -24,12 +24,20 @@ It is designed for fast validation and visualization of aerial image coverage an
   - Calculates total area from Esri Shapefile polygons (ROI).
   - Supports units in hectares (ha) or square meters (m²).
 
+- **🌍 Worldwide Geographic Support**
+  - **Dynamic Coordinate System Selection**: Automatically determines the optimal UTM coordinate system for any geographic location.
+  - **Global Coverage**: Supports all UTM zones (1-60) for both Northern and Southern hemispheres.
+  - **Accurate Projections**: Uses local UTM projections to minimize distortion and ensure precise area calculations.
+  - **Fallback Protection**: Gracefully falls back to Web Mercator if UTM zone calculation fails.
+  - **Perfect for International Use**: Works seamlessly with data from any region worldwide.
+
 - **Map Visualization**
   - Downsampled TIFF preview with high-speed rendering.
   - Overlays two color-coded semi-transparent polygons:
     - Red: TIFF mask extent
     - Blue: ROI from shapefile
   - Clean map layout for screenshots or reporting (no axis/grid clutter).
+  - Dark theme compatible with optimized colors for visibility.
 
 - **User Interface**
   - Intuitive GUI built with PySide6.
@@ -53,10 +61,16 @@ rasterio==1.3.10       # GeoTIFF handling
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/Jakub-Espandr/UAV-AreaCalc.git
-cd UAV-AreaCalc
+# Clone the repository
+git clone https://github.com/Jakub-Espandr/UAVAreaCalc.git
+cd UAVAreaCalc
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run the application
 python main.py
+
 ```
 
 ---
@@ -71,16 +85,35 @@ python main.py
 
 ---
 
-## 📌 Changelog
+## 🌐 Coordinate System Intelligence
 
-See [CHANGELOG.md](https://github.com/Jakub-Espandr/UAV-AreaCalc/blob/main/CHANGELOG.md)
+UAV AreaCalc automatically handles coordinate systems for optimal accuracy:
+
+### **How It Works**
+- **Automatic Detection**: Analyzes the geographic center of your data
+- **UTM Zone Calculation**: Determines the optimal UTM zone using longitude/latitude
+- **Hemisphere Detection**: Selects Northern (EPSG:326xx) or Southern (EPSG:327xx) projection
+- **Local Optimization**: Uses the most accurate projection for your specific location
+
+### **Supported Regions**
+- **Europe**: Zones 28-38 (Czech Republic: 33N, Albania: 34N, Greece: 34N)
+- **North America**: Zones 10-19 (New York: 17N, California: 11N)
+- **Asia**: Zones 42-58 (Beijing: 51N, Tokyo: 54N)
+- **Australia**: Zones 49-56 (Sydney: 55S, Melbourne: 55S)
+- **South America**: Zones 18-25 (São Paulo: 22S, Buenos Aires: 21S)
+- **Africa**: Zones 28-39 (Cape Town: 36S, Cairo: 36N)
+
+### **Accuracy Benefits**
+- **Minimal Distortion**: Local UTM projections provide the most accurate area calculations
+- **Consistent Results**: Same data processed anywhere in the world yields identical results
+- **Professional Standards**: Matches the accuracy of commercial GIS software
 
 ---
 
 ## 📁 Project Structure
 
 ```
-UAV-AreaCalc/
+UAVAreaCalc/
 ├── main.py
 ├── ui/              # GUI layout and styling
 ├── core/            # Area calculation logic

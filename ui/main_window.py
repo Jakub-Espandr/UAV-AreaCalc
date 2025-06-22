@@ -64,8 +64,9 @@ class CalculationWorker(QObject):
             # --- ROI Processing ---
             self.progress_update.emit(45, "Processing (5/8): Reading Shapefile...")
             roi = gpd.read_file(self.shp_path)
-            roi_optimal_crs = get_optimal_utm_crs(roi)
-            roi_metric = roi.to_crs(roi_optimal_crs)
+            
+            # Use the same optimal coordinate system as the TIFF to ensure proper alignment
+            roi_metric = roi.to_crs(optimal_crs)
 
             self.progress_update.emit(55, "Processing (6/8): Calculating ROI area...")
             unified_geometry = roi_metric.unary_union
@@ -182,7 +183,7 @@ class UAVAreaCalculator(QMainWindow):
         self.tiff_area_label = QLabel("TIFF Area: Not calculated")
         self.tiff_area_label.setStyleSheet("color: red;")
         self.roi_area_label = QLabel("ROI Area: Not calculated")
-        self.roi_area_label.setStyleSheet("color: blue;")
+        self.roi_area_label.setStyleSheet("color: #4FC3F7;")  # Light blue for dark theme visibility
         results_layout.addWidget(self.tiff_area_label)
         results_layout.addWidget(self.roi_area_label)
         results_group.setLayout(results_layout)
@@ -254,7 +255,7 @@ class UAVAreaCalculator(QMainWindow):
         # --- Cleanup ---
         self.worker.calculation_finished.connect(self.thread.quit)
         self.worker.calculation_error.connect(self.thread.quit)
-        self.worker.moveToThread(None)
+        self.thread.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.thread.start()
@@ -329,16 +330,24 @@ class UAVAreaCalculator(QMainWindow):
                 results = ({'geometry': shape(geom)} for geom, val in shapes(alpha, mask=mask, transform=src.transform) if val > 0)
                 geoms = list(results)
                 gdf = gpd.GeoDataFrame(geometry=[g["geometry"] for g in geoms], crs=src.crs).dissolve()
-                gdf.to_crs(epsg=32633).plot(ax=self.ax, facecolor='red', edgecolor='red', alpha=0.3, linewidth=2)
+                
+                # Use dynamic coordinate system selection instead of hardcoded EPSG:32633
+                optimal_crs = get_optimal_utm_crs(gdf)
+                gdf_optimal = gdf.to_crs(optimal_crs)
+                gdf_optimal.plot(ax=self.ax, facecolor='red', edgecolor='red', alpha=0.3, linewidth=2)
             
             # Plot ROI polygon and its bounding box
             roi = gpd.read_file(shp_path)
-            roi_metric = roi.to_crs(epsg=32633)
-            roi_metric.plot(ax=self.ax, facecolor='blue', edgecolor='blue', alpha=0.3, linewidth=2)
+            
+            # Use the same optimal coordinate system for ROI to ensure proper alignment
+            roi_optimal = roi.to_crs(optimal_crs)
+            roi_optimal.plot(ax=self.ax, facecolor='#4FC3F7', edgecolor='#29B6F6', alpha=0.6, linewidth=2)  # Less transparent blue for better visibility
             
             # Draw the minimum rotated rectangle and dimension lines
             if self.roi_rotated_rect:
-                self.ax.plot(*self.roi_rotated_rect.exterior.xy, color='black', linestyle='--', linewidth=1)
+                # The rotated rectangle should already be in the optimal coordinate system
+                # since it was calculated in the worker thread using the same CRS
+                self.ax.plot(*self.roi_rotated_rect.exterior.xy, color='white', linestyle='--', linewidth=1)  # White dashed line for dark theme
                 
                 # Get the coordinates of the rectangle's corners
                 x, y = self.roi_rotated_rect.exterior.coords.xy
@@ -348,7 +357,7 @@ class UAVAreaCalculator(QMainWindow):
                     x1, y1, x2, y2 = coords
                     mid_x = (x1 + x2) / 2
                     mid_y = (y1 + y2) / 2
-                    self.ax.plot([x1, x2], [y1, y2], color='black', linestyle='-', linewidth=2)
+                    self.ax.plot([x1, x2], [y1, y2], color='white', linestyle='-', linewidth=2)  # White lines for dark theme
                     
                     # Determine orientation to place text correctly without rotation
                     is_horizontal = abs(x2 - x1) > abs(y2 - y1)
@@ -357,7 +366,7 @@ class UAVAreaCalculator(QMainWindow):
                     va = 'bottom' if is_horizontal else 'center'
                     
                     self.ax.text(mid_x, mid_y, f' {text} ', ha=ha, va=va, rotation=0,
-                                 fontsize=9, color='black', backgroundcolor=(1,1,1,0.7))
+                                 fontsize=9, color='white', backgroundcolor=(0,0,0,0.8))  # White text with dark background
 
                 # Determine which side is width vs height
                 side1_len = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2)

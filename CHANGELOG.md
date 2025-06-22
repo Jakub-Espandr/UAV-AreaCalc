@@ -1,6 +1,41 @@
 # Changelog
 
 
+## [0.1.2] - 2025-06-22
+
+### Fixed
+
+-   **Critical Coordinate System Bug**: 
+    -   Fixed major bug where ROI overlay appeared incorrectly positioned for data from different geographic regions.
+    -   **Czech Republic data**: ROI overlay appeared correctly aligned with TIFF.
+    -   **Albania data**: ROI overlay appeared distant and small, as if from a different location 100km away.
+    -   **Root Cause**: Application was using hardcoded EPSG:32633 (UTM Zone 33N) for all regions.
+    -   **Solution**: Implemented dynamic coordinate system selection using `get_optimal_utm_crs()` function.
+    -   **Impact**: Now works correctly for worldwide regions with automatic UTM zone selection.
+-   **Threading Issues**: 
+    -   Fixed QObject threading warnings that appeared in terminal output.
+    -   Properly managed worker object lifecycle to prevent threading conflicts.
+    -   Improved application stability and reduced console noise.
+
+### Added
+
+-   **Worldwide Geographic Support**: 
+    -   Application now automatically selects the optimal UTM coordinate system for any geographic location.
+    -   Supports all UTM zones (1-60) for both Northern and Southern hemispheres.
+    -   Fallback to Web Mercator (EPSG:3857) if UTM zone calculation fails.
+
+### Technical
+
+-   **Coordinate System Logic**: 
+    -   Replaced hardcoded `epsg=32633` with dynamic `get_optimal_utm_crs()` calls.
+    -   Ensured consistent coordinate system usage between TIFF and ROI processing.
+    -   Added proper coordinate system handling in both worker thread and visualization.
+-   **Code Quality**: 
+    -   Fixed worker thread cleanup to prevent memory leaks.
+    -   Improved signal/slot connections for better Qt integration.
+
+---
+
 ## [0.1.1] - 2025-06-22
 
 ### Fixed

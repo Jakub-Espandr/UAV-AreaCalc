@@ -4,9 +4,20 @@ import matplotlib.pyplot as plt
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
 
-# Suppress Qt threading warnings on macOS
+# Suppress Qt warnings and threading issues on macOS
 os.environ['QT_MAC_WANTS_LAYER'] = '1'
-os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false'
+os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false;qt.*=false'
+os.environ['QT_LOGGING_RULES'] = '*.debug=false;qt.*=false'
+
+# Suppress specific macOS warnings
+if sys.platform == 'darwin':
+    os.environ['QT_MAC_WANTS_LAYER'] = '1'
+    # Suppress NSOpenPanel warnings
+    os.environ['QT_MAC_DISABLE_ACCESSIBILITY'] = '1'
+    # Suppress threading warnings
+    os.environ['QT_THREAD_PRIORITY_POLICY'] = '1'
+    # Suppress all Qt warnings
+    os.environ['QT_LOGGING_RULES'] = '*.debug=false;qt.*=false;*.info=false'
 
 # Import the refactored UI and resource functions
 from ui.main_window import UAVAreaCalculator
