@@ -1,6 +1,36 @@
 # Changelog
 
 
+## [0.1.3] - 2025-06-23
+
+### Added
+
+-   **High-Resolution Export Functionality**:
+    -   Added export options for high-DPI PNG.
+    -   Optional area overlays (TIFF and ROI polygons) for export customization.
+    -   Optional measurement overlays (width, height, and area information) for comprehensive documentation.
+    -   Professional-quality outputs suitable for reports, presentations, and technical documentation.
+-   **Enhanced Export Controls**:
+    -   Checkbox controls for toggling area overlays and measurement displays.
+    -   Export button that enables only after successful area calculations.
+-   **Improved Image Quality**:
+    -   Enhanced text rendering with better contrast and readability.
+    -   Optimized figure sizing and layout for high-quality output.
+
+### Technical
+
+-   **Export Architecture**:
+    -   Implemented `create_high_res_export()` method for dedicated export rendering.
+    -   Added export-related event handlers for UI controls.
+    -   Enhanced matplotlib figure management with proper cleanup.
+    -   Added Pillow dependency for improved image processing capabilities.
+-   **UI Enhancements**:
+    -   Added export controls group to the left panel with organized layout.
+    -   Integrated export button state management with calculation workflow.
+    -   Added proper error handling and user feedback for export operations.
+
+---
+
 ## [0.1.2] - 2025-06-22
 
 ### Fixed

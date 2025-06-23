@@ -7,6 +7,13 @@
 <h1 align="center">UAV AreaCalc – TIFF + Shapefile Area Calculator</h1>
 <p align="center"><em>Created by Jakub Ešpandr | FlyCamCzech | Born4Flight</em></p>
 
+
+<p align="center">
+  <a href="https://ibb.co/wZSzWCXx">
+    <img src="https://i.ibb.co/Ng9yjpPH/UAVArea-Calculator.png" alt="UAV AreaCalc Screenshot" width="50%"/>
+  </a>
+</p>
+
 ---
 
 ## 🛰️ Overview
@@ -39,6 +46,12 @@ It is designed for fast validation and visualization of aerial image coverage an
   - Clean map layout for screenshots or reporting (no axis/grid clutter).
   - Dark theme compatible with optimized colors for visibility.
 
+- **High-Resolution Export**
+  - Export high-DPI PNG images.
+  - Optional area overlays (TIFF and ROI polygons).
+  - Optional measurement overlays (width, height, and area information).
+  - Professional-quality outputs suitable for reports and presentations.
+
 - **User Interface**
   - Intuitive GUI built with PySide6.
   - Interactive file selection dialogs for TIFF and `.shp`.
@@ -54,6 +67,9 @@ PySide6>=6.0.0         # Modern GUI framework
 matplotlib==3.9.3      # Map visualization
 geopandas==1.0.1       # Shapefile and vector handling
 rasterio==1.3.10       # GeoTIFF handling
+shapely>=2.0.0         # Geometric operations
+pyproj>=3.0.0          # Coordinate reference system handling
+Pillow>=9.0.0          # Image processing for high-quality exports
 ```
 
 ---
@@ -80,8 +96,14 @@ python main.py
 1. Launch the app with `python main.py`
 2. Click **"Browse GeoTIFF"** and select an alpha-enabled `.tif`
 3. Click **"Browse Shapefile"** to add your ROI
-4. The map will display both overlays
-5. Toggle between hectares or square meters in the unit panel
+4. Click **"Calculate Areas"** to process the data
+5. The map will display both overlays with measurements
+6. Toggle between hectares or square meters in the unit panel
+7. **Export High-Resolution Images:**
+   - Select export format (PNG or TIFF)
+   - Choose DPI resolution (72-1200 DPI)
+   - Enable/disable area overlays and measurements
+   - Click **"Export High-Resolution Image"** to save
 
 ---
 
@@ -132,10 +154,10 @@ UAVAreaCalc/
 This project is licensed under the **Non-Commercial Public License (NCPL v1.0)**  
 © 2025 Jakub Ešpandr – FlyCamCzech, Born4Flight
 
-See the full [LICENSE](https://github.com/Jakub-Espandr/UAV-AreaCalc/blob/main/LICENSE) for terms.
+See the full [LICENSE](https://github.com/Jakub-Espandr/UAVAreaCalc/blob/main/LICENSE) for terms.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- Built using open-source geospatial libraries: Rasterio, GeoPandas, PySide6.
+- Built using open-source geospatial libraries: Rasterio, GeoPandas, PySide6, Pillow, Matplotlib.

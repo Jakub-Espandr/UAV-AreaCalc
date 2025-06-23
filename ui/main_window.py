@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QLineEdit, QFileDialog, QFrame, QRadioButton,
-    QGroupBox, QProgressBar
+    QGroupBox, QProgressBar, QSpinBox, QComboBox, QCheckBox
 )
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Qt, QTimer, QObject, Signal, QThread
@@ -99,7 +99,7 @@ class UAVAreaCalculator(QMainWindow):
         super().__init__()
         self.setWindowTitle("UAV Area Calculator")
         self.setGeometry(100, 100, 1000, 500)
-        self.setMinimumSize(800, 400)
+        self.setMinimumSize(1000, 500)
         if app_icon:
             self.setWindowIcon(app_icon)
 
@@ -109,6 +109,12 @@ class UAVAreaCalculator(QMainWindow):
         self.roi_width_m = 0
         self.roi_height_m = 0
         self.roi_rotated_rect = None
+        
+        # Export variables
+        self.export_dpi = 600  # Always 600 DPI
+        self.export_format = "PNG"  # Always PNG
+        self.export_show_measurements = True
+        self.export_show_areas = True
 
         self.setup_ui()
 
@@ -188,6 +194,30 @@ class UAVAreaCalculator(QMainWindow):
         results_layout.addWidget(self.roi_area_label)
         results_group.setLayout(results_layout)
         layout.addWidget(results_group)
+        
+        # Export controls
+        export_group = QGroupBox("Export Options")
+        export_layout = QVBoxLayout()
+        
+        # Overlay options
+        self.show_measurements_check = QCheckBox("Show measurements")
+        self.show_measurements_check.setChecked(True)
+        self.show_measurements_check.toggled.connect(self.on_show_measurements_changed)
+        export_layout.addWidget(self.show_measurements_check)
+        
+        self.show_areas_check = QCheckBox("Show area overlays")
+        self.show_areas_check.setChecked(True)
+        self.show_areas_check.toggled.connect(self.on_show_areas_changed)
+        export_layout.addWidget(self.show_areas_check)
+        
+        # Export button
+        self.export_button = QPushButton("Export High-Resolution PNG")
+        self.export_button.clicked.connect(self.export_high_res_image)
+        self.export_button.setEnabled(False)  # Disabled until calculations are complete
+        export_layout.addWidget(self.export_button)
+        
+        export_group.setLayout(export_layout)
+        layout.addWidget(export_group)
         
         # Status Label and Progress Bar
         self.status_label = QLabel("Ready")
@@ -288,6 +318,9 @@ class UAVAreaCalculator(QMainWindow):
         self.update_visualization()
         self.progress_bar.setValue(100)
         
+        # Enable export button now that we have results
+        self.export_button.setEnabled(True)
+        
         self.status_label.setText("Processing complete. Ready.")
         self.cleanup_after_run()
 
@@ -298,6 +331,209 @@ class UAVAreaCalculator(QMainWindow):
             self.progress_bar.hide()
             self.progress_bar.setStyleSheet("")
         QTimer.singleShot(1500, hide_and_reset_bar)
+
+    def on_show_measurements_changed(self, checked):
+        """Handle show measurements checkbox change."""
+        self.export_show_measurements = checked
+
+    def on_show_areas_changed(self, checked):
+        """Handle show areas checkbox change."""
+        self.export_show_areas = checked
+
+    def export_high_res_image(self):
+        """Export a high-resolution PNG image with overlays and measurements in a background thread."""
+        if not self.tiff_path_edit.text() or not self.shp_path_edit.text():
+            self.status_label.setText("Error: Please load data first.")
+            return
+            
+        if self.tiff_area_m2 <= 0 or self.roi_area_m2 <= 0:
+            self.status_label.setText("Error: Please calculate areas first.")
+            return
+
+        # Always use PNG
+        file_filter = "PNG Files (*.png)"
+        default_name = f"uav_area_analysis.png"
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Save High-Resolution PNG", 
+            default_name, 
+            file_filter
+        )
+        
+        if not file_path:
+            return
+
+        self.status_label.setText("Exporting, please wait...")
+        self.export_button.setEnabled(False)
+        QApplication.processEvents()
+
+        # Set up export worker and thread
+        self.export_thread = QThread()
+        self.export_worker = ExportWorker(file_path, self.create_high_res_export)
+        self.export_worker.moveToThread(self.export_thread)
+        self.export_thread.started.connect(self.export_worker.run)
+        self.export_worker.finished.connect(self.handle_export_finished)
+        self.export_worker.error.connect(self.handle_export_error)
+        self.export_worker.finished.connect(self.export_thread.quit)
+        self.export_worker.error.connect(self.export_thread.quit)
+        self.export_thread.finished.connect(self.export_worker.deleteLater)
+        self.export_thread.finished.connect(self.export_thread.deleteLater)
+        self.export_thread.start()
+
+    def handle_export_finished(self, file_path):
+        self.status_label.setText(f"Export complete: {os.path.basename(file_path)}")
+        self.export_button.setEnabled(True)
+        QTimer.singleShot(2000, lambda: self.status_label.setText("Ready"))
+
+    def handle_export_error(self, error_msg):
+        self.status_label.setText(f"Export error: {error_msg}")
+        self.export_button.setEnabled(True)
+        QTimer.singleShot(3000, lambda: self.status_label.setText("Ready"))
+
+    def create_high_res_export(self, file_path):
+        """Create a high-resolution export with overlays and measurements."""
+        # Create a new figure with high DPI and extra space for info
+        fig, (ax, ax_info) = plt.subplots(2, 1, figsize=(12, 10), dpi=self.export_dpi, 
+                                         gridspec_kw={'height_ratios': [15, 0.5]})
+        
+        tiff_path = self.tiff_path_edit.text()
+        shp_path = self.shp_path_edit.text()
+
+        try:
+            # Display high-resolution TIFF
+            with rasterio.open(tiff_path) as src:
+                # Use higher resolution for export
+                scale = 10  # Less downsampling for higher quality
+                out_shape = (src.count, int(src.height//scale), int(src.width//scale))
+                image = src.read(out_shape=out_shape, resampling=Resampling.bilinear)
+                transform = src.transform * src.transform.scale((src.width / image.shape[-1]), (src.height / image.shape[-2]))
+                rasterio.plot.show(image, transform=transform, ax=ax)
+            
+            # Plot TIFF polygon overlay if enabled
+            if self.export_show_areas:
+                with rasterio.open(tiff_path) as src:
+                    alpha = src.read(4)
+                    mask = alpha > 0
+                    results = ({'geometry': shape(geom)} for geom, val in shapes(alpha, mask=mask, transform=src.transform) if val > 0)
+                    geoms = list(results)
+                    gdf = gpd.GeoDataFrame(geometry=[g["geometry"] for g in geoms], crs=src.crs).dissolve()
+                    
+                    optimal_crs = get_optimal_utm_crs(gdf)
+                    gdf_optimal = gdf.to_crs(optimal_crs)
+                    gdf_optimal.plot(ax=ax, facecolor='red', edgecolor='red', alpha=0.3, linewidth=2)
+            
+            # Plot ROI polygon and measurements if enabled
+            if self.export_show_areas or self.export_show_measurements:
+                roi = gpd.read_file(shp_path)
+                optimal_crs = get_optimal_utm_crs(roi)
+                roi_optimal = roi.to_crs(optimal_crs)
+                
+                if self.export_show_areas:
+                    roi_optimal.plot(ax=ax, facecolor='#4FC3F7', edgecolor='#29B6F6', alpha=0.6, linewidth=2)
+                
+                # Draw measurements if enabled
+                if self.export_show_measurements and self.roi_rotated_rect:
+                    # Draw the minimum rotated rectangle
+                    ax.plot(*self.roi_rotated_rect.exterior.xy, color='white', linestyle='--', linewidth=2)
+                    
+                    # Get the coordinates of the rectangle's corners
+                    x, y = self.roi_rotated_rect.exterior.coords.xy
+                    
+                    # Function to draw a dimension line with text
+                    def draw_dimension(coords, text):
+                        x1, y1, x2, y2 = coords
+                        mid_x = (x1 + x2) / 2
+                        mid_y = (y1 + y2) / 2
+                        ax.plot([x1, x2], [y1, y2], color='white', linestyle='-', linewidth=3)
+                        
+                        # Determine orientation to place text correctly
+                        is_horizontal = abs(x2 - x1) > abs(y2 - y1)
+                        
+                        ha = 'center' if is_horizontal else 'left'
+                        va = 'bottom' if is_horizontal else 'center'
+                        
+                        ax.text(mid_x, mid_y, f' {text} ', ha=ha, va=va, rotation=0,
+                                 fontsize=12, color='white', backgroundcolor=(0,0,0,0.8), 
+                                 weight='bold', bbox=dict(boxstyle="round,pad=0.3", facecolor='black', alpha=0.7))
+
+                    # Determine which side is width vs height
+                    side1_len = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2)
+                    
+                    if np.isclose(side1_len, self.roi_width_m):
+                        width_coords = (x[0], y[0], x[1], y[1])
+                        height_coords = (x[1], y[1], x[2], y[2])
+                    else:
+                        width_coords = (x[1], y[1], x[2], y[2])
+                        height_coords = (x[0], y[0], x[1], y[1])
+
+                    # Draw width and height measurements
+                    draw_dimension(width_coords, f'{self.roi_width_m:.2f} m')
+                    draw_dimension(height_coords, f'{self.roi_height_m:.2f} m')
+
+            # Set up the map area
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+            ax.axis('equal')
+            
+            # Create information area below the map
+            ax_info.set_xticks([])
+            ax_info.set_yticks([])
+            for spine in ax_info.spines.values():
+                spine.set_visible(False)
+            ax_info.set_facecolor('white')
+            fig.patch.set_facecolor('white')  # Ensure figure background is white
+            
+            # Calculate area values for display
+            unit_text = "ha" if self.ha_radio.isChecked() else "m²"
+            tiff_area_display = self.tiff_area_m2 / 10000 if self.ha_radio.isChecked() else self.tiff_area_m2
+            roi_area_display = self.roi_area_m2 / 10000 if self.ha_radio.isChecked() else self.roi_area_m2
+            
+            # Compose the info line with colored values using multiple text elements
+            tiff_label = f"TIFF Area: "
+            tiff_value = f"{tiff_area_display:.4f} {unit_text}"
+            roi_label = f" | ROI Area: "
+            roi_value = f"{roi_area_display:.4f} {unit_text}"
+
+            # Calculate total width for centering
+            dummy = ax_info.text(0.5, 0.5, tiff_label + tiff_value + roi_label + roi_value, fontsize=16, weight='bold', ha='center', va='center', color='black', alpha=0)
+            fig.canvas.draw()
+            renderer = fig.canvas.get_renderer()
+            bbox = dummy.get_window_extent(renderer=renderer)
+            dummy.remove()
+            width = bbox.width / fig.dpi / fig.get_figwidth()
+            x = 0.5 - width / 2
+            y = 0.5
+            def text_width(s, **kwargs):
+                t = ax_info.text(0, 0, s, fontsize=16, weight='bold', ha='left', va='center', color='black', alpha=0, **kwargs)
+                fig.canvas.draw()
+                w = t.get_window_extent(renderer=renderer).width / fig.dpi / fig.get_figwidth()
+                t.remove()
+                return w
+            tw1 = text_width(tiff_label)
+            tw2 = text_width(tiff_value)
+            tw3 = text_width(roi_label)
+            tw4 = text_width(roi_value)
+            ax_info.text(x, y, tiff_label, fontsize=16, weight='bold', ha='left', va='center', color='black', zorder=2, transform=ax_info.transAxes)
+            x += tw1
+            ax_info.text(x, y, tiff_value, fontsize=16, weight='bold', ha='left', va='center', color='red', zorder=2, transform=ax_info.transAxes)
+            x += tw2
+            ax_info.text(x, y, roi_label, fontsize=16, weight='bold', ha='left', va='center', color='black', zorder=2, transform=ax_info.transAxes)
+            x += tw3
+            ax_info.text(x, y, roi_value, fontsize=16, weight='bold', ha='left', va='center', color='#4FC3F7', zorder=2, transform=ax_info.transAxes)
+
+            fig.tight_layout()
+            
+            # Save with high quality settings
+            fig.savefig(file_path, dpi=self.export_dpi, bbox_inches='tight', 
+                       facecolor='white', edgecolor='none', transparent=False, pil_kwargs={"quality": 100})
+            
+            plt.close(fig)
+            
+        except Exception as e:
+            plt.close(fig)
+            raise e
 
     def update_visualization(self):
         self.ax.clear()
@@ -389,3 +625,19 @@ class UAVAreaCalculator(QMainWindow):
             
         except Exception as e:
             print(f"Error updating visualization: {e}") 
+
+class ExportWorker(QObject):
+    finished = Signal(str)
+    error = Signal(str)
+
+    def __init__(self, file_path, create_export_func):
+        super().__init__()
+        self.file_path = file_path
+        self.create_export_func = create_export_func
+
+    def run(self):
+        try:
+            self.create_export_func(self.file_path)
+            self.finished.emit(self.file_path)
+        except Exception as e:
+            self.error.emit(str(e)) 
