@@ -1,6 +1,18 @@
 # Changelog
 
 
+## [0.1.4] - 2025-06-24
+
+### Changed
+
+-   **Measurement Box Styling Improvements**:
+    -   Changed measurement lines and rectangle from white to black for better visibility against white TIFF backgrounds.
+    -   Optimalized measurement line width for improved prominence.
+    -   Enhanced text styling with bold black text on white background and rounded bounding boxes.
+    -   Applied consistent styling across both preview and export visualizations.
+
+---
+
 ## [0.1.3] - 2025-06-23
 
 ### Added

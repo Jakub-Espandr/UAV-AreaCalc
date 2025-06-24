@@ -434,27 +434,27 @@ class UAVAreaCalculator(QMainWindow):
                 # Draw measurements if enabled
                 if self.export_show_measurements and self.roi_rotated_rect:
                     # Draw the minimum rotated rectangle
-                    ax.plot(*self.roi_rotated_rect.exterior.xy, color='white', linestyle='--', linewidth=2)
+                    ax.plot(*self.roi_rotated_rect.exterior.xy, color='black', linestyle='--', linewidth=2)  # Black dashed line for white background
                     
                     # Get the coordinates of the rectangle's corners
                     x, y = self.roi_rotated_rect.exterior.coords.xy
                     
-                    # Function to draw a dimension line with text
+                    # Function to draw a dimension line with non-rotated text
                     def draw_dimension(coords, text):
                         x1, y1, x2, y2 = coords
                         mid_x = (x1 + x2) / 2
                         mid_y = (y1 + y2) / 2
-                        ax.plot([x1, x2], [y1, y2], color='white', linestyle='-', linewidth=3)
+                        ax.plot([x1, x2], [y1, y2], color='black', linestyle='-', linewidth=2)  # Black lines for white background
                         
-                        # Determine orientation to place text correctly
+                        # Determine orientation to place text correctly without rotation
                         is_horizontal = abs(x2 - x1) > abs(y2 - y1)
                         
                         ha = 'center' if is_horizontal else 'left'
                         va = 'bottom' if is_horizontal else 'center'
                         
                         ax.text(mid_x, mid_y, f' {text} ', ha=ha, va=va, rotation=0,
-                                 fontsize=12, color='white', backgroundcolor=(0,0,0,0.8), 
-                                 weight='bold', bbox=dict(boxstyle="round,pad=0.3", facecolor='black', alpha=0.7))
+                                 fontsize=12, color='black', backgroundcolor='white', 
+                                 weight='bold', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9))
 
                     # Determine which side is width vs height
                     side1_len = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2)
@@ -583,7 +583,7 @@ class UAVAreaCalculator(QMainWindow):
             if self.roi_rotated_rect:
                 # The rotated rectangle should already be in the optimal coordinate system
                 # since it was calculated in the worker thread using the same CRS
-                self.ax.plot(*self.roi_rotated_rect.exterior.xy, color='white', linestyle='--', linewidth=1)  # White dashed line for dark theme
+                self.ax.plot(*self.roi_rotated_rect.exterior.xy, color='black', linestyle='--', linewidth=2)  # Black dashed line for white background
                 
                 # Get the coordinates of the rectangle's corners
                 x, y = self.roi_rotated_rect.exterior.coords.xy
@@ -593,7 +593,7 @@ class UAVAreaCalculator(QMainWindow):
                     x1, y1, x2, y2 = coords
                     mid_x = (x1 + x2) / 2
                     mid_y = (y1 + y2) / 2
-                    self.ax.plot([x1, x2], [y1, y2], color='white', linestyle='-', linewidth=2)  # White lines for dark theme
+                    self.ax.plot([x1, x2], [y1, y2], color='black', linestyle='-', linewidth=2)  # Black lines for white background
                     
                     # Determine orientation to place text correctly without rotation
                     is_horizontal = abs(x2 - x1) > abs(y2 - y1)
@@ -602,7 +602,8 @@ class UAVAreaCalculator(QMainWindow):
                     va = 'bottom' if is_horizontal else 'center'
                     
                     self.ax.text(mid_x, mid_y, f' {text} ', ha=ha, va=va, rotation=0,
-                                 fontsize=9, color='white', backgroundcolor=(0,0,0,0.8))  # White text with dark background
+                                 fontsize=12, color='black', backgroundcolor='white', 
+                                 weight='bold', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9))
 
                 # Determine which side is width vs height
                 side1_len = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2)
